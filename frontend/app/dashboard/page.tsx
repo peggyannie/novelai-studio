@@ -5,15 +5,7 @@ import { useRouter } from "next/navigation";
 import { Project, getProjects, createProject, deleteProject, CreateProjectRequest, WritingStats, getWritingStats } from "@/lib/api";
 import { ProjectCard } from "@/components/project-card";
 import { Button } from "@/components/ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
+import { ProjectWizard } from "@/components/project-wizard";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -24,15 +16,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+// Removing old input/select imports since they are inside ProjectWizard now
 import { toast } from "sonner";
 import { Plus, BookOpen, FileText, Type, CalendarDays } from "lucide-react";
 import { UserNav } from "@/components/user-nav";
@@ -42,11 +26,6 @@ export default function DashboardPage() {
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
-    const [newProject, setNewProject] = useState<CreateProjectRequest>({
-        title: "",
-        genre: "xuanhuan",
-        target_words: 100000,
-    });
     const [projectToDelete, setProjectToDelete] = useState<number | null>(null);
     const [stats, setStats] = useState<WritingStats | null>(null);
 
@@ -68,18 +47,6 @@ export default function DashboardPage() {
         getWritingStats().then(setStats).catch(console.error);
     }, []);
 
-    const handleCreateProject = async () => {
-        try {
-            const created = await createProject(newProject);
-            toast.success("作品创建成功");
-            setProjects([...projects, created]);
-            setIsCreateOpen(false);
-            setNewProject({ title: "", genre: "xuanhuan", target_words: 100000 });
-        } catch (error) {
-            toast.error("创建作品失败");
-            console.error(error);
-        }
-    };
 
     const handleDeleteProject = (id: number) => {
         setProjectToDelete(id);
@@ -128,77 +95,14 @@ export default function DashboardPage() {
                     <p className="text-muted-foreground">管理您的网文作品。</p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                        <DialogTrigger asChild>
-                            <Button>
-                                <Plus className="mr-2 h-4 w-4" /> 创建作品
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                                <DialogTitle>创建新作品</DialogTitle>
-                                <DialogDescription>
-                                    开始一部新的网文。请填写以下信息。
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="title" className="text-right">
-                                        书名
-                                    </Label>
-                                    <Input
-                                        id="title"
-                                        value={newProject.title}
-                                        onChange={(e) =>
-                                            setNewProject({ ...newProject, title: e.target.value })
-                                        }
-                                        className="col-span-3"
-                                    />
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="genre" className="text-right">
-                                        类型
-                                    </Label>
-                                    <Select
-                                        value={newProject.genre}
-                                        onValueChange={(value) =>
-                                            setNewProject({ ...newProject, genre: value })
-                                        }
-                                    >
-                                        <SelectTrigger className="col-span-3">
-                                            <SelectValue placeholder="选择类型" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="xuanhuan">玄幻</SelectItem>
-                                            <SelectItem value="urban_superpower">都市异能</SelectItem>
-                                            <SelectItem value="xianxia">仙侠</SelectItem>
-                                            <SelectItem value="sci_fi_mecha">科幻机甲</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="target" className="text-right">
-                                        目标字数
-                                    </Label>
-                                    <Input
-                                        id="target"
-                                        type="number"
-                                        value={newProject.target_words}
-                                        onChange={(e) =>
-                                            setNewProject({
-                                                ...newProject,
-                                                target_words: parseInt(e.target.value) || 0,
-                                            })
-                                        }
-                                        className="col-span-3"
-                                    />
-                                </div>
-                            </div>
-                            <DialogFooter>
-                                <Button onClick={handleCreateProject}>创建</Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                    <Button onClick={() => setIsCreateOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" /> 创建作品
+                    </Button>
+                    <ProjectWizard
+                        open={isCreateOpen}
+                        onOpenChange={setIsCreateOpen}
+                        onSuccess={(created) => setProjects([...projects, created])}
+                    />
                     <UserNav />
                 </div>
             </div>
