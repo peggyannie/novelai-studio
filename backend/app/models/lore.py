@@ -1,0 +1,39 @@
+import enum
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, Enum, DateTime
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
+from app.db.base import Base
+
+class LoreCategory(str, enum.Enum):
+    CHARACTER = "character"
+    REALM = "realm"
+    TECHNIQUE = "technique"
+    FACTION = "faction"
+    ITEM = "item"
+    LOCATION = "location"
+    OTHER = "other"
+
+class LoreItem(Base):
+    __tablename__ = "lore_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    category = Column(String, nullable=False, index=True) # Using string to store enum value
+    name = Column(String, index=True, nullable=False)
+    description = Column(Text, nullable=True)
+    content = Column(Text, nullable=True) # Detailed content/bio
+    
+    # Optional link to first appearance
+    first_appearance_chapter_id = Column(Integer, ForeignKey("chapters.id", ondelete="SET NULL"), nullable=True)
+    
+    # Flexibility for specialized fields (e.g., character age, realm level)
+    attributes = Column(JSONB, server_default='{}') 
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    project = relationship("Project", backref="lore_items")
+    first_appearance_chapter = relationship("Chapter", foreign_keys=[first_appearance_chapter_id])

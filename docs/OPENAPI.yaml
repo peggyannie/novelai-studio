@@ -1,0 +1,858 @@
+openapi: 3.0.3
+info:
+  title: 男频网文 AI 作者工具 API
+  version: 1.0.0
+  description: MVP API contract for AI-agent-driven implementation.
+servers:
+  - url: http://localhost:8000
+    description: Local
+
+tags:
+  - name: Auth
+  - name: Projects
+  - name: Lore
+  - name: Outline
+  - name: Chapters
+  - name: Consistency
+  - name: Versions
+  - name: Export
+
+paths:
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/projects:
+    post:
+      tags: [Projects]
+      summary: Create project
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    get:
+      tags: [Projects]
+      summary: List projects
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Project'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/projects/{id}:
+    get:
+      tags: [Projects]
+      summary: Get project detail
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/projects/{id}/lore-items:
+    post:
+      tags: [Lore]
+      summary: Create lore item
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLoreItemRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoreItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    get:
+      tags: [Lore]
+      summary: List lore items
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - in: query
+          name: type
+          schema:
+            $ref: '#/components/schemas/LoreType'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LoreItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/lore-items/{item_id}:
+    patch:
+      tags: [Lore]
+      summary: Update lore item
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: item_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLoreItemRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoreItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/projects/{id}/outline/generate:
+    post:
+      tags: [Outline]
+      summary: Generate project outline
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateOutlineRequest'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIJobAccepted'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/chapters/{chapter_id}/outline-lock:
+    patch:
+      tags: [Outline]
+      summary: Lock or unlock chapter outline
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ChapterId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [locked]
+              properties:
+                locked:
+                  type: boolean
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/chapters/{chapter_id}/ai-draft:
+    post:
+      tags: [Chapters]
+      summary: Generate chapter draft
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ChapterId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateDraftRequest'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIJobAccepted'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/chapters/{chapter_id}/apply-draft:
+    post:
+      tags: [Chapters]
+      summary: Apply generated draft to chapter content
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ChapterId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [draft]
+              properties:
+                draft:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chapter'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/chapters/{chapter_id}/consistency-check:
+    post:
+      tags: [Consistency]
+      summary: Run consistency check for chapter
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ChapterId'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIJobAccepted'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/chapters/{chapter_id}/issues:
+    get:
+      tags: [Consistency]
+      summary: Get consistency issues by chapter
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ChapterId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConsistencyIssue'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/issues/{issue_id}/apply-fix:
+    post:
+      tags: [Consistency]
+      summary: Apply suggested fix for one issue
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: issue_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/chapters/{chapter_id}/snapshot:
+    post:
+      tags: [Versions]
+      summary: Create chapter snapshot
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ChapterId'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChapterVersion'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/chapters/{chapter_id}/versions:
+    get:
+      tags: [Versions]
+      summary: List chapter versions
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ChapterId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChapterVersion'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/chapters/{chapter_id}/rollback/{version_id}:
+    post:
+      tags: [Versions]
+      summary: Rollback chapter to version
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ChapterId'
+        - in: path
+          name: version_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chapter'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/projects/{id}/export:
+    post:
+      tags: [Export]
+      summary: Export project
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [format]
+              properties:
+                format:
+                  type: string
+                  enum: [txt, docx]
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportAccepted'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/exports/{export_id}:
+    get:
+      tags: [Export]
+      summary: Get export status/result
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: export_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, status]
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [pending, processing, done, failed]
+                  download_url:
+                    type: string
+                    nullable: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    ProjectId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ChapterId:
+      in: path
+      name: chapter_id
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [access_token, refresh_token, token_type]
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+          example: bearer
+
+    Project:
+      type: object
+      required: [id, title, genre, status, target_words, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        genre:
+          type: string
+          enum: [xuanhuan, urban_superpower, xianxia, sci_fi_mecha]
+        status:
+          type: string
+          enum: [serializing, completed, archived]
+        target_words:
+          type: integer
+          minimum: 1000
+        update_frequency:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateProjectRequest:
+      type: object
+      required: [title, genre, target_words]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        genre:
+          type: string
+          enum: [xuanhuan, urban_superpower, xianxia, sci_fi_mecha]
+        target_words:
+          type: integer
+          minimum: 1000
+        update_frequency:
+          type: string
+          example: daily
+
+    LoreType:
+      type: string
+      enum: [character, realm, skill, faction, item, location]
+
+    LoreItem:
+      type: object
+      required: [id, project_id, type, name, summary, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        project_id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/LoreType'
+        name:
+          type: string
+        summary:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        constraints:
+          type: object
+          additionalProperties: true
+        first_appear_chapter_id:
+          type: string
+          format: uuid
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateLoreItemRequest:
+      type: object
+      required: [type, name, summary]
+      properties:
+        type:
+          $ref: '#/components/schemas/LoreType'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        summary:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        constraints:
+          type: object
+          additionalProperties: true
+        first_appear_chapter_id:
+          type: string
+          format: uuid
+
+    UpdateLoreItemRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        summary:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        constraints:
+          type: object
+          additionalProperties: true
+        first_appear_chapter_id:
+          type: string
+          format: uuid
+
+    GenerateOutlineRequest:
+      type: object
+      required: [theme, main_goal, antagonist, progression_path]
+      properties:
+        theme:
+          type: string
+        main_goal:
+          type: string
+        antagonist:
+          type: string
+        progression_path:
+          type: string
+
+    GenerateDraftRequest:
+      type: object
+      required: [mode, prompt, target_words]
+      properties:
+        mode:
+          type: string
+          enum: [continue, rewrite, expand, compress]
+        prompt:
+          type: string
+        target_words:
+          type: integer
+          minimum: 200
+          maximum: 5000
+        style:
+          type: string
+        pacing:
+          type: string
+          enum: [slow, medium, fast]
+
+    AIJobAccepted:
+      type: object
+      required: [job_id, status]
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [queued, processing]
+
+    Chapter:
+      type: object
+      required: [id, project_id, title, current_content, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        project_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        current_content:
+          type: string
+        updated_at:
+          type: string
+          format: date-time
+
+    ConsistencyIssue:
+      type: object
+      required: [id, chapter_id, issue_type, severity, detail, suggestion, resolved]
+      properties:
+        id:
+          type: string
+          format: uuid
+        chapter_id:
+          type: string
+          format: uuid
+        issue_type:
+          type: string
+          enum: [character_conflict, power_conflict, timeline_conflict, terminology_conflict]
+        severity:
+          type: string
+          enum: [low, medium, high]
+        detail:
+          type: string
+        suggestion:
+          type: string
+        resolved:
+          type: boolean
+
+    ChapterVersion:
+      type: object
+      required: [id, chapter_id, version_no, content, source, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        chapter_id:
+          type: string
+          format: uuid
+        version_no:
+          type: integer
+        content:
+          type: string
+        source:
+          type: string
+          enum: [user, ai, system]
+        created_at:
+          type: string
+          format: date-time
+
+    ExportAccepted:
+      type: object
+      required: [export_id, status]
+      properties:
+        export_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, processing]
