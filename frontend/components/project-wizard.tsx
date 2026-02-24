@@ -31,6 +31,7 @@ export function ProjectWizard({ open, onOpenChange, onSuccess }: ProjectWizardPr
         title: "",
         genre: "xuanhuan",
         target_words: 1000000,
+        description: "",
     });
 
     const [bibleData, setBibleData] = useState<BibleGenerateRequest>({
@@ -48,7 +49,7 @@ export function ProjectWizard({ open, onOpenChange, onSuccess }: ProjectWizardPr
         if (open) {
             setStep("BASIC_SETTINGS");
             setProject(null);
-            setBasicData({ title: "", genre: "xuanhuan", target_words: 1000000 });
+            setBasicData({ title: "", genre: "xuanhuan", target_words: 1000000, description: "" });
             setBibleData({ protagonist: "", cheat: "", power_system: "" });
             setProgress(0);
             setTaskId(null);
@@ -180,6 +181,16 @@ export function ProjectWizard({ open, onOpenChange, onSuccess }: ProjectWizardPr
                                 value={basicData.title}
                                 placeholder="例如：斗破苍穹"
                                 onChange={(e) => setBasicData({ ...basicData, title: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="description">作品简介 / 核心构思</Label>
+                            <Textarea
+                                id="description"
+                                value={basicData.description}
+                                placeholder="在这里简述这部小说的主要卖点、开局剧情或你脑海中的核心灵感..."
+                                onChange={(e) => setBasicData({ ...basicData, description: e.target.value })}
+                                className="h-20"
                             />
                         </div>
                         <div className="grid grid-cols-2 gap-4">

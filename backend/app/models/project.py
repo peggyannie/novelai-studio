@@ -20,6 +20,7 @@ class Project(Base):
     status = Column(String, default=ProjectStatus.SERIALIZING)
     target_words = Column(Integer, default=100000)
     update_frequency = Column(String, nullable=True)
+    description = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

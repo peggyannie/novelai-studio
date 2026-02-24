@@ -111,6 +111,7 @@ export interface Project {
     target_words: number;
     status: string;
     update_frequency?: string;
+    description?: string;
     created_at: string;
     updated_at?: string;
     volumes?: Volume[];
@@ -152,6 +153,7 @@ export interface CreateProjectRequest {
     title: string;
     genre: string;
     target_words: number;
+    description?: string;
 }
 
 export interface CreateVolumeRequest {

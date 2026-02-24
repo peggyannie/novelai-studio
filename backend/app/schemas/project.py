@@ -57,6 +57,7 @@ class ProjectBase(BaseModel):
     genre: str
     target_words: Optional[int] = 100000
     update_frequency: Optional[str] = None
+    description: Optional[str] = None
 
 class ProjectCreate(ProjectBase):
     pass
@@ -67,6 +68,7 @@ class ProjectUpdate(BaseModel):
     status: Optional[str] = None
     target_words: Optional[int] = None
     update_frequency: Optional[str] = None
+    description: Optional[str] = None
 
 class Project(ProjectBase):
     id: int
