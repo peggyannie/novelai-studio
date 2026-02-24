@@ -70,22 +70,22 @@ npm run dev
 novelai-studio/
 ├── backend/            # FastAPI 后端项目
 │   ├── app/
-│   │   ├── api/        # 路由和接口声明
-│   │   ├── core/       # 配置与安全
-│   │   ├── models/     # 数据库模型
+│   │   ├── api/        # RESTful 接口 (涵盖 Auth, 章节, Lore设库, AI大纲, 一致性检查, 导出等)
+│   │   ├── core/       # 全局配置、AI 客户端与中文提示词 (Prompts)
+│   │   ├── models/     # SQLAlchemy 数据库表模型
 │   │   └── schemas/    # Pydantic 校验模型
 │   └── tests/          # 测试用例
 ├── frontend/           # Next.js 前端项目
-│   ├── app/            # 页面路由 (Next.js App Router)
-│   ├── components/     # UI 组件
-│   ├── lib/            # 工具类与接口定义 (Axios)
+│   ├── app/            # 页面路由 (注册/登录、Dashboard、大纲树、世界观库及章节编辑器)
+│   ├── components/     # UI 组件 (Shadcn 及通用业务组件)
+│   ├── lib/            # 工具类与 Axios 接口定义
 │   └── public/         # 静态资源
-└── docker-compose.yml  # 基础设施编排
+└── docker-compose.yml  # 基础设施编排 (PostgreSQL + pgvector, Redis)
 ```
 
 ## 🗓️ 路线图 (Roadmap)
 
-- [x] **Sprint 1**: 基础框架、用户认证、作品管理。
-- [ ] **Sprint 2**: Lore Library 设定库开发、AI 基础模型集成。
-- [ ] **Sprint 3**: 大纲生成与章节智能创作功能。
-- [ ] **Sprint 4**: 一致性检查、版本控制与多格式导出。
+- [x] **Sprint 1**: 基础框架、用户认证、作品基本 CRUD。
+- [x] **Sprint 2**: Lore Library 设定库开发、AI 基础模型集成与中文支持。
+- [x] **Sprint 3**: 大纲引擎生成与带上下文对话的智能创作（续写/重写）功能。
+- [x] **Sprint 4**: 章节一致性冲突检查、历史快照管理与多格式项目数据导出。
