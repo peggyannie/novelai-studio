@@ -35,29 +35,43 @@ async def generate_outline(
     # 3. Prepare Prompt
     instruction = request.prompt if request.prompt else "无特殊指令，请根据作品类型自由发挥。"
     
-    prompt = OUTLINE_GENERATION_PROMPT.format(
-        title=project.title,
-        genre=project.genre,
-        target_words=project.target_words,
-        description=f"Update frequency: {project.update_frequency}", # simplified for now
-        instruction=instruction
-    )
+    volumes_data = []
+    previous_context = "这是小说的开局部分，当前没有前文大纲。"
+    
+    # Generate 3 volumes sequentially using Sliding Window Chunking
+    for vol_no in range(1, 4):
+        prompt = OUTLINE_GENERATION_PROMPT.format(
+            title=project.title,
+            genre=project.genre,
+            target_words=project.target_words,
+            description=f"Update frequency: {project.update_frequency}",
+            previous_context=previous_context,
+            target_volume_no=vol_no,
+            instruction=instruction
+        )
 
-    # 4. Call AI
-    ai_response = await ai_client.generate_response(
-        prompt=prompt,
-        system_role=SYSTEM_WRITING_ASSISTANT,
-        response_format={"type": "json_object"}
-    )
+        ai_response = await ai_client.generate_response(
+            prompt=prompt,
+            system_role=SYSTEM_WRITING_ASSISTANT,
+            response_format={"type": "json_object"}
+        )
 
-    if not ai_response:
-        raise HTTPException(status_code=500, detail="AI generation failed")
+        if not ai_response:
+            raise HTTPException(status_code=500, detail=f"AI generation failed at volume {vol_no}")
 
-    try:
-        content = json.loads(ai_response)
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail="AI returned invalid JSON")
+        try:
+            vol_content = json.loads(ai_response)
+            vol_node = vol_content.get("volume")
+            if not vol_node: # Fallback just in case
+                vol_node = vol_content.get("volumes", [{}])[0]
+            if vol_node:
+                volumes_data.append(vol_node)
+                # Compress into previous context for the next chunk
+                previous_context += f"\n第{vol_no}卷: {vol_node.get('title', '无题')} (共{len(vol_node.get('chapters', []))}章)"
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=500, detail=f"AI returned invalid JSON at volume {vol_no}")
 
+    content = {"volumes": volumes_data}
     # 5. Save/Update Outline
     if existing_outline:
         existing_outline.content = content
@@ -120,7 +134,14 @@ async def update_outline(
     if not outline:
         raise HTTPException(status_code=404, detail="Outline not found")
 
+    if outline.version != request.version:
+        raise HTTPException(
+            status_code=409, 
+            detail="大纲内容已被其他终端修改（版本过时），请刷新以防出现内容覆盖！(Outline has been modified elsewhere, version mismatch.)"
+        )
+
     outline.content = request.content
+    outline.version += 1
     db.add(outline)
     await db.commit()
     await db.refresh(outline)
@@ -163,7 +184,8 @@ async def apply_outline(
         
         for vol_data in volumes_data:
             vol_order = vol_data.get("order_no")
-            vol_title = vol_data.get("title", f"卷 {vol_order}")
+            raw_title = vol_data.get("title")
+            vol_title = raw_title if raw_title and str(raw_title).strip() else f"卷 {vol_order}"
             
             if vol_order in existing_volumes:
                 volume = existing_volumes[vol_order]

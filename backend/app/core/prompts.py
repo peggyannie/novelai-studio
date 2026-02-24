@@ -7,42 +7,42 @@ SYSTEM_WRITING_ASSISTANT = """
 """
 
 
-# Outline Generation
+# Outline Generation (Sliding Window Chunk)
 OUTLINE_GENERATION_PROMPT = """
-分析以下作品信息，生成一个结构化的大纲。
+分析以下作品信息，秉承网文创作规律，严格**仅生成第 {target_volume_no} 卷**的大纲内容。
 
 **作品信息:**
 - 标题: {title}
 - 类型: {genre}
-- 目标字数: {target_words}
-- 简介/构思: {description} (如果有)
+- 整体目标字数: {target_words}
+- 简介/核心构思: {description} (如果有)
+
+**前文大纲摘要 (Previous Context):**
+{previous_context}
 
 **用户特别指令:**
 {instruction}
 
 **要求:**
-1. 将小说结构化为“分卷” (Volumes)。
-2. 为每一卷提供一个标题和序号。
-3. 每一卷包含 3-5 个关键章节来确立剧情。
-4. 为每一章提供标题和一句话简介。
-5. 结构应遵循标准网文节奏：开篇快、进展稳、高潮清晰。
-6. **必须使用中文输出。**
+1. 本次推演仅生出**1个“分卷” (Volume)**。
+2. 为该卷提供符合设定的标题，序号必须为 {target_volume_no}。
+3. 该卷内必须包含 10-15 个具有连贯剧情推进的关键章节。
+4. 为每一章提供标题和一句话剧情简介。
+5. 节奏必须紧凑：开篇抛出悬念/危机、中期破局、单卷卷尾必留钩子 (Hook)。
+6. **注意：必须以完整的简体中文输出最终 JSON。不允许出现英文属性值！**
 
 **输出格式:**
 仅返回有效的 JSON。
 结构:
 {{
-  "volumes": [
-    {{
-      "title": "第一卷标题",
-      "order_no": 1,
-      "chapters": [
-        {{ "title": "第一章标题", "summary": "章节简介", "order_no": 1 }},
-           ...
-      ]
-    }},
-    ...
-  ]
+  "volume": {{
+    "title": "第X卷卷名",
+    "order_no": {target_volume_no},
+    "chapters": [
+      {{ "title": "第X章标题", "summary": "章节简介", "order_no": 1 }},
+      ...
+    ]
+  }}
 }}
 """
 
@@ -126,11 +126,11 @@ CONSISTENCY_CHECK_PROMPT = """
 4. 如果没有发现重大问题，请返回一个空列表。
 
 **输出格式:**
-仅返回有效的 JSON。
+仅返回有效的 JSON。注意：必须以完整的简体中文输出最终 JSON，例如 "type": "设定规则冲突"。不允许出现英文属性值！
 {{
   "issues": [
     {{
-      "type": "character" | "plot" | "setting" | "other",
+      "type": "时间线冲突" | "战力崩溃" | "设定遗漏" | "人设崩塌" | "其他",
       "description": "对不一致之处的描述",
       "quote": "章节原文中引起矛盾的准确引用",
       "suggestion": "如何修复的建议"

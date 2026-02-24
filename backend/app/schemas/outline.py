@@ -17,15 +17,18 @@ class OutlineGenerateRequest(BaseModel):
 
 class OutlineUpdateRequest(BaseModel):
     content: Dict[str, Any]
+    version: int
 
 class OutlineUpdate(BaseModel):
     title: Optional[str] = None
     content: Optional[Dict[str, Any]] = None
     status: Optional[str] = None
+    version: Optional[int] = None
 
 class Outline(OutlineBase):
     id: int
     project_id: int
+    version: int
     created_at: datetime
     updated_at: Optional[datetime] = None
 

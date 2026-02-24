@@ -20,6 +20,9 @@ class Outline(Base):
     
     status = Column(String, default="generated") # generated, approved
     
+    # Version for optimistic locking against concurrent edits
+    version = Column(Integer, default=1, nullable=False)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

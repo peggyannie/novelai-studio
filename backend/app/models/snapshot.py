@@ -11,6 +11,10 @@ class ChapterSnapshot(Base):
     chapter_id = Column(Integer, ForeignKey("chapters.id", ondelete="CASCADE"), nullable=False)
     content = Column(Text, nullable=True)
     word_count = Column(Integer, default=0)
+    
+    # "auto" or "manual" distinction
+    snapshot_type = Column(String, default="manual", nullable=False, index=True)
+    
     label = Column(String, nullable=True)  # Optional user note, e.g. "Before AI rewrite"
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
