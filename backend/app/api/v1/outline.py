@@ -5,6 +5,7 @@ from sqlalchemy.future import select
 from app.api import deps
 from app.models.project import Project, Volume, Chapter
 from app.models.outline import Outline
+from app.models.lore import LoreItem
 from app.schemas import outline as outline_schemas
 from app.core.ai_client import ai_client
 from app.core.prompts import OUTLINE_GENERATION_PROMPT, SYSTEM_WRITING_ASSISTANT
@@ -32,7 +33,17 @@ async def generate_outline(
     result = await db.execute(select(Outline).where(Outline.project_id == project.id))
     existing_outline = result.scalars().first()
 
-    # 3. Prepare Prompt
+    # 3. Fetch LoreItems for context
+    result = await db.execute(select(LoreItem).where(LoreItem.project_id == project.id))
+    lore_items = result.scalars().all()
+    lore_context = ""
+    if lore_items:
+        lore_texts = [f"- {item.category}: {item.name}: {item.description}" for item in lore_items]
+        lore_context = "\n".join(lore_texts)
+    else:
+        lore_context = "暂无设定库信息。"
+
+    # 4. Prepare Prompt
     instruction = request.prompt if request.prompt else "无特殊指令，请根据作品类型自由发挥。"
     
     volumes_data = []
@@ -44,7 +55,8 @@ async def generate_outline(
             title=project.title,
             genre=project.genre,
             target_words=project.target_words,
-            description=f"Update frequency: {project.update_frequency}",
+            description=project.description or "无特别简介",
+            lore_context=lore_context,
             previous_context=previous_context,
             target_volume_no=vol_no,
             instruction=instruction

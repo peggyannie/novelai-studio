@@ -17,6 +17,9 @@ OUTLINE_GENERATION_PROMPT = """
 - 整体目标字数: {target_words}
 - 简介/核心构思: {description} (如果有)
 
+**设定库关联信息 (Lore Context):**
+{lore_context}
+
 **前文大纲摘要 (Previous Context):**
 {previous_context}
 
