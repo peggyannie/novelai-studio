@@ -123,6 +123,20 @@ export function ProjectWizard({ open, onOpenChange, onSuccess }: ProjectWizardPr
         }
     };
 
+    const handleAutoGenerateInputs = async () => {
+        try {
+            setAiGenerating(true);
+            toast.info("AI主编接管中，正在发散核心构思...");
+            const autoData = await generateBibleInputs(basicData);
+            setBibleData(autoData);
+            toast.success("灵感裂变完成！您可以继续修改或直接推演世界观");
+        } catch (error: any) {
+            toast.error(error.response?.data?.detail || "AI 灵感推演由于网络原因失败");
+        } finally {
+            setAiGenerating(false);
+        }
+    };
+
     const handleGenerateBible = async () => {
         if (!project) return;
         if (!bibleData.protagonist || !bibleData.cheat || !bibleData.power_system) {
