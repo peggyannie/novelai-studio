@@ -8,10 +8,15 @@ import json
 from app.api import deps
 from app.models.project import Project
 from app.models.lore import LoreItem, LoreCategory
+from app.schemas.project import ProjectCreate
 from app.schemas.bible import BibleGenerateRequest, BibleGenerateResponse
 from app.core.ai_client import ai_client
+from app.core.prompts import SYSTEM_WRITING_ASSISTANT, BIBLE_INPUTS_GENERATION_PROMPT
 
 router = APIRouter()
+
+class BibleInputsGenerateRequest(ProjectCreate):
+    description: str = ""
 
 # In-memory task tracker: { task_id: {"progress": int, "message": str, "completed": bool, "error": str} }
 # In a real distributed system, we would use Redis for this.
@@ -55,6 +60,40 @@ async def generate_bible_background(task_id: str, project_id: int, request: Bibl
     except Exception as e:
         await db.rollback()
         generation_tasks[task_id] = {"progress": 0, "message": f"Validation Error", "error": str(e), "completed": True}
+
+@router.post("/generate-bible-inputs", response_model=BibleGenerateRequest)
+async def generate_bible_inputs(
+    request: BibleInputsGenerateRequest,
+    current_user = Depends(deps.get_current_user)
+):
+    """
+    Auto-generates protagonist, cheat, and power system based on basic project info.
+    """
+    prompt = BIBLE_INPUTS_GENERATION_PROMPT.format(
+        title=request.title,
+        genre=request.genre,
+        target_words=request.target_words,
+        description=request.description or "无特别简介"
+    )
+
+    ai_response = await ai_client.generate_response(
+        prompt=prompt,
+        system_role=SYSTEM_WRITING_ASSISTANT,
+        response_format={"type": "json_object"}
+    )
+
+    if not ai_response:
+        raise HTTPException(status_code=500, detail="AI generation failed")
+
+    try:
+        content = json.loads(ai_response)
+        return BibleGenerateRequest(
+            protagonist=content.get("protagonist", ""),
+            cheat=content.get("cheat", ""),
+            power_system=content.get("power_system", "")
+        )
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="AI returned invalid JSON")
 
 @router.post("/{project_id}/generate-bible", response_model=BibleGenerateResponse)
 async def start_bible_generation(

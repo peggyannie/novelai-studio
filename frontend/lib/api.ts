@@ -215,6 +215,11 @@ export const generateBible = async (projectId: number, data: BibleGenerateReques
     return response.data;
 };
 
+export const generateBibleInputs = async (data: CreateProjectRequest): Promise<BibleGenerateRequest> => {
+    const response = await api.post(`/projects/generate-bible-inputs`, data);
+    return response.data;
+};
+
 export const updateProject = async (id: number, data: UpdateProjectRequest): Promise<Project> => {
     const response = await api.put(`/projects/${id}`, data);
     return response.data;

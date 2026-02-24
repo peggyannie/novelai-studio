@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Loader2, Sparkles, CheckCircle2, BookOpen } from "lucide-react";
-import { createProject, generateBible, Project, CreateProjectRequest, BibleGenerateRequest } from "@/lib/api";
+import { createProject, generateBible, Project, CreateProjectRequest, BibleGenerateRequest, generateBibleInputs } from "@/lib/api";
 
 interface ProjectWizardProps {
     open: boolean;
@@ -26,6 +26,7 @@ export function ProjectWizard({ open, onOpenChange, onSuccess }: ProjectWizardPr
     const [step, setStep] = useState<Step>("BASIC_SETTINGS");
     const [project, setProject] = useState<Project | null>(null);
     const [loading, setLoading] = useState(false);
+    const [aiGenerating, setAiGenerating] = useState(false);
 
     const [basicData, setBasicData] = useState<CreateProjectRequest>({
         title: "",
@@ -157,15 +158,29 @@ export function ProjectWizard({ open, onOpenChange, onSuccess }: ProjectWizardPr
         }}>
             <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2 text-xl font-bold">
-                        {step === "BASIC_SETTINGS" && <><BookOpen className="w-5 h-5 text-primary" /> 新建作品基石</>}
-                        {step === "BIBLE_INPUT" && <><Sparkles className="w-5 h-5 text-purple-500" /> AI 创世向导</>}
-                        {step === "GENERATING" && <><Loader2 className="w-5 h-5 animate-spin text-blue-500" /> 正在推演世界线</>}
-                        {step === "COMPLETE" && <><CheckCircle2 className="w-5 h-5 text-green-500" /> 创世大成！</>}
+                    <DialogTitle className="flex items-center justify-between text-xl font-bold w-full">
+                        <div className="flex items-center gap-2">
+                            {step === "BASIC_SETTINGS" && <><BookOpen className="w-5 h-5 text-primary" /> 新建作品基石</>}
+                            {step === "BIBLE_INPUT" && <><Sparkles className="w-5 h-5 text-purple-500" /> AI 创世向导</>}
+                            {step === "GENERATING" && <><Loader2 className="w-5 h-5 animate-spin text-blue-500" /> 正在推演世界线</>}
+                            {step === "COMPLETE" && <><CheckCircle2 className="w-5 h-5 text-green-500" /> 创世大成！</>}
+                        </div>
+                        {step === "BIBLE_INPUT" && (
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                className="h-8 gap-1.5 mr-6 text-purple-600 bg-purple-100 hover:bg-purple-200"
+                                onClick={handleAutoGenerateInputs}
+                                disabled={aiGenerating || loading}
+                            >
+                                {aiGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                <span className="text-xs">AI 一键构思</span>
+                            </Button>
+                        )}
                     </DialogTitle>
                     <DialogDescription>
                         {step === "BASIC_SETTINGS" && "第一步：确定小说的核心元数据。"}
-                        {step === "BIBLE_INPUT" && "第二步：设定最核心的基干数据，AI 将自动裂变世界观！"}
+                        {step === "BIBLE_INPUT" && "第二步：您可以手动输入，或点击右上角让 AI 根据您的构思自动脑暴初始设定。"}
                         {step === "GENERATING" && "请耐心等待，大语言模型正在为你裂变海量设定..."}
                         {step === "COMPLETE" && "所有的关键角色、法宝武技、大境界体系均已注入到设定库中。"}
                     </DialogDescription>
@@ -235,7 +250,8 @@ export function ProjectWizard({ open, onOpenChange, onSuccess }: ProjectWizardPr
                                 placeholder="例如：林动，一个没落家族的平凡少年，性格坚韧不拔，对敌人心狠手辣对亲人极度护短..."
                                 value={bibleData.protagonist}
                                 onChange={(e) => setBibleData({ ...bibleData, protagonist: e.target.value })}
-                                className="h-20"
+                                className="h-24"
+                                disabled={aiGenerating}
                             />
                         </div>
                         <div className="space-y-2">
@@ -245,7 +261,8 @@ export function ProjectWizard({ open, onOpenChange, onSuccess }: ProjectWizardPr
                                 placeholder="例如：祖石，内部自成空间，能够提纯丹药杂质、完善残缺武学，其中还寄宿着一只天妖貂..."
                                 value={bibleData.cheat}
                                 onChange={(e) => setBibleData({ ...bibleData, cheat: e.target.value })}
-                                className="h-20"
+                                className="h-24"
+                                disabled={aiGenerating}
                             />
                         </div>
                         <div className="space-y-2">
@@ -255,7 +272,8 @@ export function ProjectWizard({ open, onOpenChange, onSuccess }: ProjectWizardPr
                                 placeholder="淬体九重，然后凝聚阴阳二气晋升地元境、天元境，最后阴阳交泰结成元丹..."
                                 value={bibleData.power_system}
                                 onChange={(e) => setBibleData({ ...bibleData, power_system: e.target.value })}
-                                className="h-20"
+                                className="h-24"
+                                disabled={aiGenerating}
                             />
                         </div>
                     </div>
@@ -294,10 +312,10 @@ export function ProjectWizard({ open, onOpenChange, onSuccess }: ProjectWizardPr
                     )}
                     {step === "BIBLE_INPUT" && (
                         <div className="flex w-full gap-3">
-                            <Button variant="outline" onClick={handleFinish} className="flex-1">
-                                跳过自动生成，直接进入
+                            <Button variant="outline" onClick={handleFinish} className="flex-1" disabled={aiGenerating || loading}>
+                                跳过设定，直接进入写作区
                             </Button>
-                            <Button onClick={handleGenerateBible} disabled={loading} className="flex-1 bg-purple-600 hover:bg-purple-700">
+                            <Button onClick={handleGenerateBible} disabled={loading || aiGenerating} className="flex-1 bg-purple-600 hover:bg-purple-700">
                                 {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
                                 AI一键推演世界观
                             </Button>
