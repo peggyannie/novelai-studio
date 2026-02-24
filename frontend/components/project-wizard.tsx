@@ -86,6 +86,12 @@ export function ProjectWizard({ open, onOpenChange, onSuccess }: ProjectWizardPr
                     toast.success("创世向导：世界线推演完成！");
                     evtSource.close();
                     setStep("COMPLETE");
+
+                    // Automatic redirect after 2.5 seconds
+                    setTimeout(() => {
+                        onOpenChange(false);
+                        router.push(`/project/${project.id}`);
+                    }, 2500);
                 }
             } catch (err) {
                 console.error("Failed to parse SSE", err);
@@ -271,6 +277,7 @@ export function ProjectWizard({ open, onOpenChange, onSuccess }: ProjectWizardPr
                         <p className="text-sm text-muted-foreground px-8">
                             《{basicData.title}》的底层法则、重要配角、神器大纲已存入右侧设定库(Lorebook)中，你可以随时去修改丰富。接下来，你可以自由分配精力去推演大纲了。
                         </p>
+                        <p className="text-xs text-primary animate-pulse pt-2">即将自动进入写作空间...</p>
                     </div>
                 )}
 
