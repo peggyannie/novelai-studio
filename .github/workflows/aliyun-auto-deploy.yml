@@ -1,0 +1,32 @@
+name: Aliyun Auto Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy To Aliyun ECS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.ALIYUN_HOST }}
+          username: ${{ secrets.ALIYUN_USER }}
+          key: ${{ secrets.ALIYUN_SSH_KEY }}
+          port: ${{ secrets.ALIYUN_PORT || '22' }}
+          script: |
+            set -eu
+            DEPLOY_PATH="${{ secrets.DEPLOY_PATH || '/home/dev/novelai-studio' }}"
+            DEPLOY_BRANCH="${{ secrets.DEPLOY_BRANCH || 'main' }}"
+
+            cd "$DEPLOY_PATH"
+            git fetch origin "$DEPLOY_BRANCH"
+            git checkout "$DEPLOY_BRANCH"
+            git pull --ff-only origin "$DEPLOY_BRANCH"
+
+            docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+            docker compose --env-file .env.prod -f docker-compose.prod.yml ps
