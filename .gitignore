@@ -106,3 +106,7 @@ next-env.d.ts
 # Project Specific
 # ==================================
 backend/alembic/versions/__pycache__/
+
+# Keep frontend library helpers tracked
+!frontend/lib/
+!frontend/lib/**
