@@ -106,3 +106,7 @@ next-env.d.ts
 # Project Specific
 # ==================================
 backend/alembic/versions/__pycache__/
+
+# Keep frontend utility library tracked (the generic `lib/` rule above is for Python packaging dirs).
+!frontend/lib/
+!frontend/lib/**
