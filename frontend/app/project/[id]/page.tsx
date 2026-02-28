@@ -7,6 +7,8 @@ import {
     Volume,
     Chapter,
     getProject,
+    generateBible,
+    generateBibleInputs,
     createVolume,
     createChapter,
     updateProject,
@@ -19,6 +21,7 @@ import {
     UpdateProjectRequest,
     exportProjectTxt,
     reorderChapters,
+    BibleGenerateRequest,
     ReorderItem,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -53,10 +56,12 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Plus, MoreVertical, Edit, Trash2, FileText, ChevronLeft, BookOpen, Settings, Download, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, MoreVertical, Edit, Trash2, FileText, ChevronLeft, BookOpen, Settings, Download, ChevronUp, ChevronDown, Sparkles, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { UserNav } from "@/components/user-nav";
 
@@ -104,6 +109,18 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     // Edit Project State
     const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
     const [editProjectData, setEditProjectData] = useState<UpdateProjectRequest>({});
+    // AI Bible State (moved from creation flow to detail page)
+    const [isBibleOpen, setIsBibleOpen] = useState(false);
+    const [aiGenerating, setAiGenerating] = useState(false);
+    const [isBibleSubmitting, setIsBibleSubmitting] = useState(false);
+    const [bibleTaskId, setBibleTaskId] = useState<string | null>(null);
+    const [bibleProgress, setBibleProgress] = useState(0);
+    const [bibleProgressMessage, setBibleProgressMessage] = useState("正在沟通位面意志...");
+    const [bibleData, setBibleData] = useState<BibleGenerateRequest>({
+        protagonist: "",
+        cheat: "",
+        power_system: "",
+    });
 
     const fetchProject = async () => {
         try {
@@ -134,6 +151,51 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             fetchProject();
         }
     }, [projectId]);
+
+    useEffect(() => {
+        if (!isBibleOpen || !bibleTaskId) return;
+
+        const url = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/projects/${projectId}/generate-bible/status?task_id=${bibleTaskId}`;
+        let lastReportedProgress = 0;
+        const evtSource = new EventSource(url);
+
+        evtSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (typeof data.progress === "number" && data.progress > lastReportedProgress) {
+                    setBibleProgress(data.progress);
+                    lastReportedProgress = data.progress;
+                }
+                if (data.message) {
+                    setBibleProgressMessage(data.message);
+                }
+
+                if (data.error) {
+                    toast.error(`推演失败: ${data.error}`);
+                    setBibleTaskId(null);
+                    setIsBibleSubmitting(false);
+                    evtSource.close();
+                    return;
+                }
+
+                if (data.completed || data.progress >= 100) {
+                    toast.success("世界观推演完成，已写入设定库");
+                    setBibleTaskId(null);
+                    setIsBibleSubmitting(false);
+                    setIsBibleOpen(false);
+                    evtSource.close();
+                }
+            } catch (err) {
+                console.error("Failed to parse SSE", err);
+            }
+        };
+
+        evtSource.onerror = () => {
+            evtSource.close();
+        };
+
+        return () => evtSource.close();
+    }, [isBibleOpen, bibleTaskId, projectId]);
 
     const handleCreateVolume = async () => {
         if (!project) return;
@@ -210,6 +272,57 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         }
     };
 
+    const openBibleDialog = () => {
+        setBibleTaskId(null);
+        setBibleProgress(0);
+        setBibleProgressMessage("正在沟通位面意志...");
+        setBibleData({
+            protagonist: "",
+            cheat: "",
+            power_system: "",
+        });
+        setIsBibleOpen(true);
+    };
+
+    const handleAutoGenerateInputs = async () => {
+        if (!project) return;
+        try {
+            setAiGenerating(true);
+            const autoData = await generateBibleInputs({
+                title: project.title,
+                genre: project.genre,
+                target_words: project.target_words,
+                description: project.description || "",
+            });
+            setBibleData(autoData);
+            toast.success("灵感裂变完成，可直接推演或继续修改");
+        } catch (error: any) {
+            toast.error(error.response?.data?.detail || "AI 灵感推演失败");
+        } finally {
+            setAiGenerating(false);
+        }
+    };
+
+    const handleGenerateBible = async () => {
+        if (!project) return;
+        if (!bibleData.protagonist || !bibleData.cheat || !bibleData.power_system) {
+            toast.error("请完善主角、金手指和升级体系设定");
+            return;
+        }
+
+        try {
+            setIsBibleSubmitting(true);
+            const res = await generateBible(project.id, bibleData);
+            setBibleTaskId(res.task_id);
+            setBibleProgress(1);
+            setBibleProgressMessage("创世引擎已启动...");
+        } catch (error) {
+            setIsBibleSubmitting(false);
+            toast.error("启动世界观推演失败");
+            console.error(error);
+        }
+    };
+
     if (loading) {
         return <div className="container mx-auto p-6 flex justify-center py-20">加载中...</div>;
     }
@@ -235,6 +348,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     </div>
                 </div>
                 <div className="flex gap-2">
+                    <Button variant="default" onClick={openBibleDialog}>
+                        <Sparkles className="mr-2 h-4 w-4" /> AI推演世界观
+                    </Button>
                     <Button variant="outline" asChild>
                         <Link href={`/project/${projectId}/outline`}>
                             <FileText className="mr-2 h-4 w-4" /> 大纲
@@ -524,6 +640,83 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     </div>
                     <DialogFooter>
                         <Button onClick={handleCreateChapter}>创建</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* AI Bible Dialog */}
+            <Dialog open={isBibleOpen} onOpenChange={(open) => !isBibleSubmitting && setIsBibleOpen(open)}>
+                <DialogContent className="sm:max-w-[700px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center justify-between">
+                            <span className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-purple-500" /> AI 创世向导</span>
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                className="h-8 gap-1.5 mr-6 text-purple-600 bg-purple-100 hover:bg-purple-200"
+                                onClick={handleAutoGenerateInputs}
+                                disabled={aiGenerating || isBibleSubmitting}
+                            >
+                                {aiGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                <span className="text-xs">AI 一键构思</span>
+                            </Button>
+                        </DialogTitle>
+                        <DialogDescription>
+                            根据你的核心设定，自动生成并推演角色、金手指和境界体系，写入设定库。
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-4 py-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="bible-protagonist">一句话主角人设</Label>
+                            <Textarea
+                                id="bible-protagonist"
+                                placeholder="例如：林动，一个没落家族的平凡少年，性格坚韧不拔..."
+                                value={bibleData.protagonist}
+                                onChange={(e) => setBibleData({ ...bibleData, protagonist: e.target.value })}
+                                className="h-24"
+                                disabled={aiGenerating || isBibleSubmitting}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="bible-cheat">核心金手指/系统</Label>
+                            <Textarea
+                                id="bible-cheat"
+                                placeholder="例如：祖石，内部自成空间，能够提纯丹药杂质..."
+                                value={bibleData.cheat}
+                                onChange={(e) => setBibleData({ ...bibleData, cheat: e.target.value })}
+                                className="h-24"
+                                disabled={aiGenerating || isBibleSubmitting}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="bible-power">力量/境界升级体系</Label>
+                            <Textarea
+                                id="bible-power"
+                                placeholder="例如：淬体九重，然后凝聚阴阳二气晋升地元境..."
+                                value={bibleData.power_system}
+                                onChange={(e) => setBibleData({ ...bibleData, power_system: e.target.value })}
+                                className="h-24"
+                                disabled={aiGenerating || isBibleSubmitting}
+                            />
+                        </div>
+                    </div>
+
+                    {isBibleSubmitting && (
+                        <div className="space-y-2 pt-2">
+                            <Progress value={bibleProgress} className="h-2" />
+                            <p className="text-xs text-muted-foreground">{bibleProgressMessage} {bibleProgress}%</p>
+                        </div>
+                    )}
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsBibleOpen(false)} disabled={isBibleSubmitting}>
+                            暂不推演
+                        </Button>
+                        <Button onClick={handleGenerateBible} disabled={isBibleSubmitting || aiGenerating}>
+                            {isBibleSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                            AI一键推演世界观
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
