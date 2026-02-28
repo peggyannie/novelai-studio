@@ -2,6 +2,13 @@
 
 NovelAI Studio 是一款专为男频网文作者设计的 AI 辅助创作工具。它集成了项目管理、世界观设定（Lore Library）以及 AI 智能辅助写作功能，旨在提升网文作者的创作效率并保持内容一致性。
 
+## 🌐 在线地址
+
+- 生产站点（HTTPS）：`https://novelai-studio.duckdns.org`
+- 生产站点（HTTP，会自动跳转 HTTPS）：`http://novelai-studio.duckdns.org`
+- Swagger 文档：`https://novelai-studio.duckdns.org/docs`
+- OpenAPI JSON：`https://novelai-studio.duckdns.org/api/v1/openapi.json`
+
 ## 🚀 核心功能
 
 - **项目管理**: 支持作品、分卷、章节的完整 CRUD 操作。
@@ -21,7 +28,7 @@ NovelAI Studio 是一款专为男频网文作者设计的 AI 辅助创作工具�
 - **校验**: Pydantic v2
 
 ### 前端 (Frontend)
-- **框架**: Next.js 15 (App Router)
+- **框架**: Next.js 16 (App Router)
 - **语言**: TypeScript
 - **样式**: Tailwind CSS
 - **组件库**: Shadcn UI / Radix UI
@@ -64,6 +71,74 @@ npm run dev
 
 ---
 
+## 🚀 生产部署（Docker + Nginx）
+
+项目已内置生产部署配置（前后端、数据库、Nginx、HTTPS）：
+
+- `docker-compose.prod.yml`
+- `backend/Dockerfile`
+- `frontend/Dockerfile`
+- `deploy/nginx/default.conf`
+- `deploy/env.prod.example`
+- `docs/ALIYUN_DEPLOY.md`
+
+### 1. 生产环境启动
+
+```bash
+cp deploy/env.prod.example .env.prod
+# 编辑 .env.prod（至少修改密码、密钥、域名、AI Key）
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+```
+
+### 2. 关键环境变量
+
+- `POSTGRES_PASSWORD`: 数据库密码（必须修改）
+- `SECRET_KEY`: JWT 密钥（必须修改）
+- `BACKEND_CORS_ORIGINS`: 必须是 JSON 数组字符串，例如：
+  - `["https://your-domain.com"]`
+  - `["http://your-server-ip"]`
+- `AI_API_KEY`: AI 提供商 API Key（为空则 AI 功能禁用）
+- `AI_BASE_URL` / `AI_MODEL_NAME`: AI 网关与模型配置
+
+### 3. 部署后验证
+
+- 前端首页：`http://<域名或IP>/`
+- Swagger 文档：`http://<域名或IP>/docs`
+- OpenAPI：`http://<域名或IP>/api/v1/openapi.json`
+
+### 4. HTTPS（Let’s Encrypt）
+
+仓库已提供证书签发与续期脚本：
+
+- `deploy/ssl/issue_cert.sh`
+- `deploy/ssl/renew_cert.sh`
+
+详细步骤见 [docs/ALIYUN_DEPLOY.md](/Users/xuanling/Developer/Learning/novelai-studio/docs/ALIYUN_DEPLOY.md)。
+
+### 5. 自动部署（GitHub Actions）
+
+已提供自动部署工作流（推送 `main` 自动部署到 ECS）：
+
+- `.github/workflows/aliyun-auto-deploy.yml`
+- 说明文档：[docs/ALIYUN_CICD.md](/Users/xuanling/Developer/Learning/novelai-studio/docs/ALIYUN_CICD.md)
+
+---
+
+## 🤖 AI 配置与排查
+
+若 AI 功能不可用，请优先检查：
+
+1. `.env.prod` 中 `AI_API_KEY` 非空。
+2. `AI_BASE_URL` 与 `AI_MODEL_NAME` 和你的供应商匹配。
+3. 重启后端：
+   ```bash
+   docker compose --env-file .env.prod -f docker-compose.prod.yml up -d backend
+   docker compose --env-file .env.prod -f docker-compose.prod.yml logs -f backend
+   ```
+4. 日志中不应出现：`AI_API_KEY not set. AI features will be disabled.`
+
+---
+
 ## 📂 项目结构
 
 ```text
@@ -80,7 +155,9 @@ novelai-studio/
 │   ├── components/     # UI 组件 (Shadcn 及通用业务组件)
 │   ├── lib/            # 工具类与 Axios 接口定义
 │   └── public/         # 静态资源
-└── docker-compose.yml  # 基础设施编排 (PostgreSQL + pgvector, Redis)
+├── docker-compose.yml       # 本地基础服务编排 (PostgreSQL + Redis + Adminer)
+├── docker-compose.prod.yml  # 生产编排 (Frontend + Backend + DB + Redis + Nginx)
+└── deploy/                  # Nginx、生产 env 模板、SSL 脚本
 ```
 
 ## 🗓️ 路线图 (Roadmap)
