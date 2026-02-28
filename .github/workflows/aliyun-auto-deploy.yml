@@ -13,17 +13,32 @@ jobs:
     steps:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_BRANCH: ${{ secrets.DEPLOY_BRANCH }}
         with:
           host: ${{ secrets.ALIYUN_HOST }}
           username: ${{ secrets.ALIYUN_USER }}
           key: ${{ secrets.ALIYUN_SSH_KEY }}
-          port: ${{ secrets.ALIYUN_PORT || '22' }}
+          envs: DEPLOY_PATH,DEPLOY_BRANCH
           script: |
             set -eu
-            DEPLOY_PATH="${{ secrets.DEPLOY_PATH || '/home/dev/novelai-studio' }}"
-            DEPLOY_BRANCH="${{ secrets.DEPLOY_BRANCH || 'main' }}"
+            DEPLOY_PATH="${DEPLOY_PATH:-/home/dev/novelai-studio}"
+            DEPLOY_BRANCH="${DEPLOY_BRANCH:-main}"
+
+            if [ ! -d "$DEPLOY_PATH" ]; then
+              echo "DEPLOY_PATH not found: $DEPLOY_PATH"
+              exit 1
+            fi
 
             cd "$DEPLOY_PATH"
+
+            if [ ! -d .git ]; then
+              echo "Not a git repository: $DEPLOY_PATH"
+              ls -la
+              exit 1
+            fi
+
             git fetch origin "$DEPLOY_BRANCH"
             git checkout "$DEPLOY_BRANCH"
             git pull --ff-only origin "$DEPLOY_BRANCH"
