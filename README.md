@@ -2,6 +2,13 @@
 
 NovelAI Studio 是一款专为男频网文作者设计的 AI 辅助创作工具。它集成了项目管理、世界观设定（Lore Library）以及 AI 智能辅助写作功能，旨在提升网文作者的创作效率并保持内容一致性。
 
+## 🌐 在线地址
+
+- 生产站点（HTTPS）：`https://novelai-studio.duckdns.org`
+- 生产站点（HTTP，会自动跳转 HTTPS）：`http://novelai-studio.duckdns.org`
+- Swagger 文档：`https://novelai-studio.duckdns.org/docs`
+- OpenAPI JSON：`https://novelai-studio.duckdns.org/api/v1/openapi.json`
+
 ## 🚀 核心功能
 
 - **项目管理**: 支持作品、分卷、章节的完整 CRUD 操作。
